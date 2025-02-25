@@ -1,69 +1,70 @@
-import { Request, Response } from "express";
-import { razorpayInstance } from "../config/razorpay.config";
-import crypto, { sign } from "crypto";
+import razorpayInstance from "../config/razorpay.config";
+import crypto from "crypto"
+import { Response } from "express";
+import {
+  CreateOrderRequestType,
+  VerifyOrderRequestType,
+} from "../types/interfaces"
 
-export const createOrder = async (req: Request, res: Response) => {
-  const { productId, amount } = req.body; // Right now I am taking amount from frontend for testing but in production we will fetch price from DB by the product id
-
-  // Creating an Order
-  const options = {
-    amount: amount * 100, // As razorpay counts as 100.00 RS
-    currency: "INR",
-    receipt: `receipt_order_1`,
-  };
+export const createOrder = async (
+  req: CreateOrderRequestType,
+  res: Response
+): Promise<void> => {
   try {
-    razorpayInstance.orders.create(options, (err, order) => {
-      if (err) {
-        return res.status(401).json({
-          success: false,
-          message: "Something went wrong",
-        });
-      }
+    const { productId, amount } = req.body;
+    const options = {
+      amount: amount * 100,
+      currency: "INR",
+      receipt: `receipt_order_${Date.now()}`,
+    };
 
-      return res.status(200).json({
-        success: true,
-        order: order,
-      });
+    const order = await razorpayInstance.orders.create(options);
+
+    res.status(200).json({
+      success: true,
+      message: "Order created successfully",
+      order: order
     });
-  } catch (err) {
-    return res.status(500).json({
+  } catch (error) {
+    res.status(500).json({
       success: false,
-      message: "Internal server error",
+      message: error instanceof Error ? error.message : "Internal server error",
     });
   }
 };
 
-// Verification API controller
-export const verifyOrder = async (req: Request, res: Response) => {
+export const verifyOrder = async (
+  req: VerifyOrderRequestType,
+  res: Response
+): Promise<void> => {
   try {
-    const { order_id, payment_id, signature } = req.body;
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
     const secretKey = process.env.RAZORPAY_KEY_SECRET;
 
-    // Creating hmac object
+    if (!secretKey) {
+      throw new Error("RAZORPAY_KEY_SECRET is not configured");
+    }
+
     const hmac = crypto.createHmac("sha256", secretKey);
-
-    hmac.update(order_id + "|" + payment_id);
-
-    // Generate signature
+    hmac.update(`${razorpay_order_id}|${razorpay_payment_id}`);
     const generateSignature = hmac.digest("hex");
 
-    if (generateSignature === signature) {
-      // Perform DB operations
-
-      return res.status(200).json({
+    if (generateSignature === razorpay_signature) {
+       res.status(200).json({
         success: true,
-        msg: "Payment verified",
-      });
-    } else {
-      return res.status(400).json({
-        success: false,
-        msg: "Payment verification failed",
+        message: "Payment verified successfully",
       });
     }
+
+
+    res.status(200).json({
+      success: true,
+      message: "Payment verified successfully",
+    });
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
-      msg: "Internal server error",
+      message: "Internal server error",
     });
   }
 };
