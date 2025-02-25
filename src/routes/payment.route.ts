@@ -1,15 +1,11 @@
-import Razorpay from "razorpay";
-import express, { Router } from "express";
+import { Router } from "express";
 import { createOrder, verifyOrder } from "../controllers/payment.controller";
+import { validateCreateOrderRequest } from "../middlewares/validateCreateOrderRequest";
+import { validateVerifyOrderRequest } from "../middlewares/validateVerifyOrderRequest";
 
 const router = Router();
 
-// Route for creating an order
-
-// Create Order Route
-router.post("/create", createOrder);
-
-// Verify Order Route
-router.post("/verify", verifyOrder);
+router.post("/create", validateCreateOrderRequest, createOrder);
+router.post("/verify", validateVerifyOrderRequest, verifyOrder);
 
 export default router;
