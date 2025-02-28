@@ -1,13 +1,10 @@
 import { Request, response, Response } from "express";
 import razorpayInstance from "../config/razorpay.config";
 
-
-
 export const gpdailySubscription = async (req: Request, res: Response) => {
   try {
     const { amount, name, email, contact, ref } = req.body;
-
-    
+    const expire_by = Math.floor(Date.now() / 1000) + (30 * 60);
     const response = await razorpayInstance.paymentLink.create({
       amount: amount,
       currency: "INR",
@@ -18,7 +15,8 @@ export const gpdailySubscription = async (req: Request, res: Response) => {
         email: email,
         contact: contact,
       },
-      expire_by: Date.now() + 6000 ,
+      expire_by: expire_by,
+
       notify: {
         sms: true,
         email: true,
