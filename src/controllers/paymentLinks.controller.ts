@@ -8,7 +8,7 @@ export const gpdailySubscription = async (req: Request, res: Response) => {
     const response = await razorpayInstance.paymentLink.create({
       amount: amount,
       currency: "INR",
-      accept_partial: true,
+      accept_partial: false,
       description: "For GP Daily subscription",
       customer: {
         name: name,
